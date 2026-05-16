@@ -1,0 +1,203 @@
+@Library('terraform-shared-library') _
+
+pipeline {
+
+    agent {
+
+        kubernetes {
+
+            yamlFile 'jenkins/agents/kubernetes-agent.yaml'
+        }
+    }
+
+    environment {
+
+        AWS_REGION = "ap-south-1"
+
+        ENVIRONMENT = "prod"
+
+        TF_IN_AUTOMATION = "true"
+
+        TF_INPUT = "false"
+    }
+
+    options {
+
+        timestamps()
+
+        ansiColor('xterm')
+
+        disableConcurrentBuilds()
+
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+
+        timeout(time: 90, unit: 'MINUTES')
+    }
+
+    stages {
+
+        stage('Checkout') {
+
+            steps {
+
+                checkout scm
+            }
+        }
+
+        stage('Install Tools') {
+
+            steps {
+
+                sh 'chmod +x jenkins/scripts/install-tools.sh'
+
+                sh './jenkins/scripts/install-tools.sh'
+            }
+        }
+
+        stage('Terraform Format Check') {
+
+            steps {
+
+                sh 'terraform fmt -recursive -check'
+            }
+        }
+
+        stage('Terraform Init') {
+
+            steps {
+
+                terraformInit()
+            }
+        }
+
+        stage('Terraform Validate') {
+
+            steps {
+
+                terraformValidate()
+            }
+        }
+
+        stage('Terraform Security Scan') {
+
+            parallel {
+
+                stage('Checkov') {
+
+                    steps {
+
+                        sh 'checkov -d .'
+                    }
+                }
+
+                stage('tfsec') {
+
+                    steps {
+
+                        sh 'tfsec .'
+                    }
+                }
+
+                stage('Terrascan') {
+
+                    steps {
+
+                        sh 'terrascan scan'
+                    }
+                }
+
+                stage('KICS') {
+
+                    steps {
+
+                        sh 'kics scan -p .'
+                    }
+                }
+            }
+        }
+
+        stage('Kubernetes Manifest Scan') {
+
+            steps {
+
+                sh 'kube-score score k8s/*.yaml'
+            }
+        }
+
+        stage('Container Security Scan') {
+
+            steps {
+
+                sh 'trivy fs .'
+            }
+        }
+
+        stage('Terraform Plan') {
+
+            steps {
+
+                terraformPlan()
+            }
+        }
+
+        stage('Manual Approval') {
+
+            when {
+
+                branch 'main'
+            }
+
+            steps {
+
+                input message: 'Approve Terraform Apply?'
+            }
+        }
+
+        stage('Terraform Apply') {
+
+            when {
+
+                branch 'main'
+            }
+
+            steps {
+
+                terraformApply()
+            }
+        }
+
+        stage('Post Deployment Validation') {
+
+            steps {
+
+                sh './jenkins/scripts/eks-post-config.sh'
+            }
+        }
+
+        stage('Drift Detection') {
+
+            steps {
+
+                driftDetection()
+            }
+        }
+    }
+
+    post {
+
+        success {
+
+            slackNotify("SUCCESS: Deployment completed")
+        }
+
+        failure {
+
+            slackNotify("FAILED: Deployment failed")
+        }
+
+        always {
+
+            archiveArtifacts artifacts: '**/*.log', fingerprint: true
+        }
+    }
+}
