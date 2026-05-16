@@ -1,0 +1,14 @@
+import "tfplan/v2" as tfplan
+
+approved_regions = [
+
+  "ap-south-1"
+]
+
+main = rule {
+
+  all tfplan.resource_changes as _, rc {
+
+    rc.change.after.region in approved_regions
+  }
+}

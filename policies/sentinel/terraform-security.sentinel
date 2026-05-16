@@ -1,0 +1,10 @@
+import "tfplan/v2" as tfplan
+
+main = rule {
+
+  all tfplan.resource_changes as _, rc {
+
+    rc.mode is "managed"
+
+  }
+}

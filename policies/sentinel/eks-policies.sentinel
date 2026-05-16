@@ -1,0 +1,11 @@
+import "tfplan/v2" as tfplan
+
+main = rule {
+
+  all tfplan.resource_changes as _, rc {
+
+    rc.type != "aws_eks_cluster" or
+
+    rc.change.after.enabled_cluster_log_types contains "audit"
+  }
+}

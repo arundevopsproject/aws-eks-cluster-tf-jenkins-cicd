@@ -1,0 +1,21 @@
+import "tfplan/v2" as tfplan
+
+required_tags = [
+
+  "Environment",
+
+  "Owner",
+
+  "ManagedBy"
+]
+
+main = rule {
+
+  all tfplan.resource_changes as _, rc {
+
+    all required_tags as tag {
+
+      rc.change.after.tags contains tag
+    }
+  }
+}

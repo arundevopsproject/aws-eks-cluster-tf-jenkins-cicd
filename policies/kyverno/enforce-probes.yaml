@@ -1,0 +1,38 @@
+apiVersion: kyverno.io/v1
+
+kind: ClusterPolicy
+
+metadata:
+
+  name: enforce-probes
+
+spec:
+
+  validationFailureAction: enforce
+
+  rules:
+
+    - name: require-probes
+
+      match:
+
+        resources:
+
+          kinds:
+
+            - Pod
+
+      validate:
+
+        message: "Liveness and readiness probes are mandatory"
+
+        pattern:
+
+          spec:
+
+            containers:
+
+              - livenessProbe: "?*"
+
+                readinessProbe: "?*"
+                
