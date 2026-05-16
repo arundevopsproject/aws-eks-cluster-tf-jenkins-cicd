@@ -56,7 +56,8 @@
 
 
 
-# Terraform Folder Structure
+# Terraform Folder Structure for EKS Cluster Provissioning
+## Final TF Codes
 
 terraform-eks-platform/
 │
