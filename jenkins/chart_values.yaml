@@ -1,0 +1,89 @@
+controller:
+
+  admin:
+
+    createSecret: true
+
+  podSecurityContextOverride:
+
+    runAsNonRoot: true
+
+    runAsUser: 1000
+
+    fsGroup: 1000
+
+  containerSecurityContext:
+
+    allowPrivilegeEscalation: false
+
+    capabilities:
+
+      drop:
+        - ALL
+
+  resources:
+
+    requests:
+
+      cpu: "500m"
+
+      memory: "1Gi"
+
+    limits:
+
+      cpu: "2"
+
+      memory: "4Gi"
+
+  podDisruptionBudget:
+
+    enabled: true
+
+    maxUnavailable: 0
+
+  installPlugins:
+
+    - kubernetes
+    - workflow-aggregator
+    - git
+    - github
+    - blueocean
+    - docker-workflow
+    - configuration-as-code
+
+  ingress:
+
+    enabled: true
+
+    ingressClassName: alb
+
+    annotations:
+
+      alb.ingress.kubernetes.io/scheme: internet-facing
+
+      alb.ingress.kubernetes.io/target-type: ip
+
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/xxxxx
+
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+agent:
+
+  enabled: true
+
+  resources:
+
+    requests:
+
+      cpu: "250m"
+
+      memory: "512Mi"
+
+    limits:
+
+      cpu: "1"
+
+      memory: "2Gi"
+      

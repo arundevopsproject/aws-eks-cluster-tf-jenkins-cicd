@@ -1,25 +1,63 @@
-provider "kubernetes" {
+data "aws_eks_cluster" "eks" {
 
-  host = aws_eks_cluster.this.endpoint
-
-  cluster_ca_certificate = base64decode(
-    aws_eks_cluster.this.certificate_authority[0].data
-  )
-
-  token = data.aws_eks_cluster_auth.this.token
+  name = var.cluster_name
 }
 
+data "aws_eks_cluster_auth" "eks" {
+
+  name = var.cluster_name
+}
+
+provider "kubernetes" {
+
+  host = data.aws_eks_cluster.eks.endpoint
+
+  cluster_ca_certificate = base64decode(
+    data.aws_eks_cluster.eks.certificate_authority[0].data
+  )
+
+  exec {
+
+    api_version = "client.authentication.k8s.io/v1"
+
+    command = "aws"
+
+    args = [
+      "eks",
+      "get-token",
+      "--cluster-name",
+      var.cluster_name,
+      "--region",
+      var.aws_region
+    ]
+  }
+}
 
 provider "helm" {
 
   kubernetes {
 
-    host = aws_eks_cluster.this.endpoint
+    host = data.aws_eks_cluster.eks.endpoint
 
     cluster_ca_certificate = base64decode(
-      aws_eks_cluster.this.certificate_authority[0].data
+      data.aws_eks_cluster.eks.certificate_authority[0].data
     )
 
-    token = data.aws_eks_cluster_auth.this.token
+    exec {
+
+      api_version = "client.authentication.k8s.io/v1"
+
+      command = "aws"
+
+      args = [
+        "eks",
+        "get-token",
+        "--cluster-name",
+        var.cluster_name,
+        "--region",
+        var.aws_region
+      ]
+    }
   }
 }
+
